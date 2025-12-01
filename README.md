@@ -1,1 +1,250 @@
-# Web-vs-ap-duel
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Duel: Website vs. App</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for Inter font and custom styling -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#4f46e5',
+                        'secondary': '#10b981',
+                        'correct': '#10b981',
+                        'wrong': '#ef4444',
+                        'surface': '#f9fafb',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        .button-choice {
+            transition: all 0.2s ease-in-out;
+        }
+        .button-choice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container" class="w-full max-w-lg p-6 bg-white rounded-xl card border border-gray-200">
+        <h1 class="text-3xl font-extrabold text-gray-900 text-center mb-6 border-b-2 pb-3 border-primary">
+            Digital Duel: Website vs. App
+        </h1>
+
+        <!-- Score and Question -->
+        <div class="flex justify-between text-sm font-medium text-gray-600 mb-6">
+            <span id="score-display">Score: 0</span>
+            <span id="question-count">Question: 1/6</span>
+        </div>
+
+        <!-- Question Area -->
+        <div id="question-area" class="bg-surface p-6 rounded-lg mb-8 min-h-[120px] flex items-center justify-center">
+            <p id="question-text" class="text-xl font-semibold text-center text-gray-800">
+                Loading question...
+            </p>
+        </div>
+
+        <!-- Answer Choices -->
+        <div class="grid grid-cols-2 gap-4">
+            <button id="btn-website" class="button-choice py-4 text-lg font-bold text-white bg-primary rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-primary/50" onclick="handleAnswer('W')">
+                Website
+            </button>
+            <button id="btn-app" class="button-choice py-4 text-lg font-bold text-white bg-secondary rounded-lg hover:bg-emerald-600 focus:outline-none focus:ring-4 focus:ring-secondary/50" onclick="handleAnswer('A')">
+                Mobile App
+            </button>
+        </div>
+
+        <!-- Feedback & Next Button -->
+        <div id="feedback-area" class="mt-6 hidden">
+            <p id="feedback-message" class="text-center font-medium mb-3 p-3 rounded-lg"></p>
+            <button id="next-button" class="w-full py-3 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-700 transition" onclick="loadNextQuestion()">
+                Next Question
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Array of questions, correct answer (W=Website, A=App), and explanation
+        const quizData = [
+            {
+                question: "Which platform's primary advantage is high SEO ranking, making it easily discoverable by search engines?",
+                answer: "W",
+                explanation: "Websites are structured to be indexed by search engines like Google, which is crucial for organic discovery and SEO performance."
+            },
+            {
+                question: "Which platform enables **Push Notifications** to send instant alerts to a user's home screen?",
+                answer: "A",
+                explanation: "Push Notifications leverage the mobile device's operating system, a core feature of Mobile Apps for driving engagement."
+            },
+            {
+                question: "Which platform requires users to **download and install** it from a marketplace like the App Store or Google Play?",
+                answer: "A",
+                explanation: "Mobile Apps must be downloaded and installed, while Websites are accessed instantly via a browser."
+            },
+            {
+                question: "Which platform allows content updates (like blog posts or prices) to appear **instantly** without any user action?",
+                answer: "W",
+                explanation: "Website changes are immediate upon deployment. Apps require users to download an update version."
+            },
+            {
+                question: "Which platform has seamless access to device hardware features, such as the **camera, GPS, or biometrics** (Face ID)?",
+                answer: "A",
+                explanation: "Mobile Apps are designed to integrate deeply with the mobile device's underlying operating system and hardware."
+            },
+            {
+                question: "Which platform is generally **cheaper and faster** to build initially, as it only needs to support web browsers?",
+                answer: "W",
+                explanation: "Building a responsive website is typically less complex and faster than developing and maintaining separate native apps for both iOS and Android."
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        const questionText = document.getElementById('question-text');
+        const scoreDisplay = document.getElementById('score-display');
+        const questionCount = document.getElementById('question-count');
+        const btnWebsite = document.getElementById('btn-website');
+        const btnApp = document.getElementById('btn-app');
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+
+        // --- Core Game Functions ---
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            answered = false;
+            const q = quizData[currentQuestionIndex];
+
+            // Update UI elements
+            questionText.textContent = q.question;
+            questionCount.textContent = `Question: ${currentQuestionIndex + 1}/${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}`;
+
+            // Reset buttons and feedback
+            btnWebsite.classList.remove('bg-correct', 'bg-wrong');
+            btnApp.classList.remove('bg-correct', 'bg-wrong');
+            btnWebsite.classList.add('bg-primary', 'hover:bg-indigo-600');
+            btnApp.classList.add('bg-secondary', 'hover:bg-emerald-600');
+            btnWebsite.disabled = false;
+            btnApp.disabled = false;
+            feedbackArea.classList.add('hidden');
+        }
+
+        function handleAnswer(choice) {
+            if (answered) return;
+            answered = true;
+
+            const q = quizData[currentQuestionIndex];
+            const isCorrect = choice === q.answer;
+
+            // Determine which button to highlight
+            const correctButton = q.answer === 'W' ? btnWebsite : btnApp;
+            const chosenButton = choice === 'W' ? btnWebsite : btnApp;
+
+            // Disable buttons
+            btnWebsite.disabled = true;
+            btnApp.disabled = true;
+
+            // Update score and provide feedback
+            if (isCorrect) {
+                score++;
+                chosenButton.classList.remove('bg-primary', 'bg-secondary');
+                chosenButton.classList.add('bg-correct');
+                feedbackMessage.textContent = `Correct! ${q.explanation}`;
+                feedbackMessage.classList.remove('bg-wrong/20');
+                feedbackMessage.classList.add('bg-correct/20', 'text-correct');
+            } else {
+                chosenButton.classList.remove('bg-primary', 'bg-secondary');
+                chosenButton.classList.add('bg-wrong');
+                correctButton.classList.remove('bg-primary', 'bg-secondary');
+                correctButton.classList.add('bg-correct');
+                feedbackMessage.textContent = `Wrong. The answer is ${q.answer === 'W' ? 'Website' : 'Mobile App'}. ${q.explanation}`;
+                feedbackMessage.classList.remove('bg-correct/20');
+                feedbackMessage.classList.add('bg-wrong/20', 'text-wrong');
+            }
+
+            // Show feedback area
+            feedbackArea.classList.remove('hidden');
+            nextButton.textContent = currentQuestionIndex < quizData.length - 1 ? 'Next Question' : 'View Results';
+        }
+
+        function loadNextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const percentage = Math.round((score / quizData.length) * 100);
+            let resultMessage = "";
+
+            if (percentage === 100) {
+                resultMessage = "A perfect score! You are a Digital Duel Master!";
+            } else if (percentage >= 70) {
+                resultMessage = "Excellent work! You clearly understand the core differences between web and app strategy.";
+            } else if (percentage >= 40) {
+                resultMessage = "Good job! You have a solid grasp, but a few features might still be tricky.";
+            } else {
+                resultMessage = "Keep learning! You've identified some key features, but review the core benefits of each platform.";
+            }
+
+            // Hide everything and show results
+            document.getElementById('question-area').classList.add('hidden');
+            document.querySelector('.grid-cols-2').classList.add('hidden');
+            feedbackArea.classList.remove('hidden');
+            
+            feedbackMessage.innerHTML = `
+                <h2 class="text-2xl font-bold mb-2">Quiz Complete!</h2>
+                <p class="text-xl">Your Final Score: ${score} out of ${quizData.length} (${percentage}%)</p>
+                <p class="mt-4">${resultMessage}</p>
+            `;
+            feedbackMessage.classList.remove('bg-correct/20', 'bg-wrong/20');
+            feedbackMessage.classList.add('bg-indigo-100', 'text-indigo-800');
+
+            nextButton.textContent = "Play Again";
+            nextButton.onclick = resetGame;
+        }
+
+        function resetGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('question-area').classList.remove('hidden');
+            document.querySelector('.grid-cols-2').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        // Initialize the game
+        window.onload = loadQuestion;
+    </script>
+</body>
+</html>
